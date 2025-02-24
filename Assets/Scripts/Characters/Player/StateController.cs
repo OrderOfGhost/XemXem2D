@@ -1,11 +1,14 @@
 using UnityEngine;
 using UnityEngine.Rendering;
-
+using Characters.Player;
+using System.Collections.Generic;
 public class StateController
 {
     IState currentState;
     public Animator animator;
     public Rigidbody2D rb;
+
+    private readonly Dictionary<PlayerAction, IState> stateDictionary;
 
     public IdleState idleState;
     public RunState runState;
@@ -20,37 +23,37 @@ public class StateController
     {
         this.animator = animator;
         this.rb = rb;
-        idleState = new IdleState(this,animator);
-        runState = new RunState(animator);
-        rollState = new RollState(animator);
-        jumpState = new JumpState(animator, rb, this);
-        attackState = new AttackState(animator);
-        attack2State = new Attack2State(animator);
-        crouchState = new CrouchState(animator);
-        deathState = new DeathState(animator);
-        ChangeState(idleState);
-    }
-
-    public StateController()
-    {
-        ChangeState(idleState);
+        stateDictionary = new Dictionary<PlayerAction, IState>
+        {
+            {PlayerAction.Idle, new IdleState(this,animator)},
+            {PlayerAction.Run, new RunState(animator)},
+            {PlayerAction.Roll, new RollState(animator)},
+            {PlayerAction.Jump, new JumpState(animator,rb, this)},
+            {PlayerAction.Attack, new AttackState(animator)},
+            {PlayerAction.Attack2, new Attack2State(animator)},
+            {PlayerAction.Crouch, new CrouchState(animator)},
+            {PlayerAction.Death, new DeathState(animator)}
+        };
+        ChangeState(stateDictionary[PlayerAction.Idle]);
     }
 
     public void Update()
     {
-        if (currentState != null)
-        {
-            currentState.OnUpdate(this);
-        }
+        currentState?.OnUpdate(this);
     }
 
     public void ChangeState(IState newState)
     {
-        if (currentState != null)
-        {
-            currentState.OnExit(this);
-        }
+        currentState?.OnExit(this);
         currentState = newState;
-        currentState.OnEnter(this);
+        currentState?.OnEnter(this);
+    }
+
+    public void ChangeStateByAction(PlayerAction action)
+    {
+        if(stateDictionary.TryGetValue(action, out IState state))
+        {
+            ChangeState(state);
+        }
     }
 }
